@@ -1,6 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
+import {remark} from "remark";
+import remarkHtml from "remark-html";
 
 const postsDirectory = path.join(process.cwd(), 'posts')
 
@@ -8,12 +10,13 @@ export interface MdContent {
     id: string;
     date: string;
     title: string;
+    content?: string;
 }
 
 export function getSortedPostsData() {
     // Get file names under /posts
     const fileNames = fs.readdirSync(postsDirectory)
-    const allPostsData:MdContent[] = fileNames.map(fileName => {
+    const allPostsData: MdContent[] = fileNames.map(fileName => {
         // Remove ".md" from file name to get id
         const id = fileName.replace(/\.md$/, '')
 
@@ -27,7 +30,7 @@ export function getSortedPostsData() {
         // Combine the data with the id
         return {
             id,
-            ...matterResult.data as {date:string,title:string}
+            ...matterResult.data as { date: string, title: string }
         }
     })
     // Sort posts by date
@@ -67,17 +70,21 @@ export function getAllPostIds() {
 }
 
 
-export function getPostData(id:string):MdContent {
+export async function getPostData(id: string): Promise<MdContent> {
     const fullPath = path.join(postsDirectory, `${id}.md`)
     const fileContents = fs.readFileSync(fullPath, 'utf8')
 
     // Use gray-matter to parse the post metadata section
     const matterResult = matter(fileContents)
 
+    let vFile = await remark().use(remarkHtml).process(matterResult.content);
+    let string = vFile.toString();
     // Combine the data with the id
     return {
         id,
         date: matterResult.data.date,
-        title:matterResult.data.title,
+        title: matterResult.data.title,
+        content: string,
+
     }
 }
